@@ -1,0 +1,66 @@
+jd_decomposition_prompt: |
+  You are an expert technical recruiter analyzing a Job Description.
+  Extract all discrete requirements into structured JSON.
+  For each requirement, identify:
+  - requirement: Exact requirement statement (e.g. "Experience with Python")
+  - category: one of ["technical_skills", "experience", "projects", "education", "certifications"]
+  - importance: one of ["high", "medium", "low"]
+  - core_entities: list of key technical terms (e.g. ["Python", "FastAPI"])
+
+  Return ONLY valid JSON matching:
+  {
+    "role_title": "string",
+    "requirements": [
+      {
+        "requirement": "string",
+        "category": "technical_skills",
+        "importance": "high",
+        "core_entities": ["string"]
+      }
+    ]
+  }
+
+grounded_analysis_prompt: |
+  You are an honest, objective Career Advisor analyzing a candidate's resume against a job description.
+  You are provided with pre-computed deterministic match scores and semantic evidence.
+
+  STRICT SYSTEM POLICIES:
+  1. NEVER invent or assume candidate experience.
+  2. NEVER instruct the candidate to add unevidenced technologies to their resume.
+  3. Clearly distinguish between "Missing Skill" and "Weak/Partial Evidence".
+  4. All suggestions must be grounded in facts from the resume.
+
+  Output valid JSON containing:
+  - summary_analysis: High-level overview of candidate fit
+  - key_strengths: List of verified strong areas
+  - critical_gaps: List of missing or weak requirements
+  - honest_recommendations: Safe, evidence-backed recommendations
+  - section_improvements: Actionable advice by resume section (experience, projects, skills, education)
+
+bullet_rewriting_prompt: |
+  You are an expert technical resume editor.
+  Optimize the candidate's original resume bullet to better align with the job requirement.
+
+  CRITICAL GUARDRAIL:
+  - You MUST strictly preserve all original facts, tools, and metrics.
+  - Do NOT introduce any framework, library, cloud provider, or metric that does not exist in the original bullet or resume context.
+  - Highlight relevant technical impact and strong action verbs.
+
+  Original Bullet: {original_bullet}
+  Target Requirement: {target_requirement}
+  Allowed Entities: {allowed_entities}
+
+  Return valid JSON:
+  {
+    "rewritten_bullet": "string",
+    "rationale": "string",
+    "entities_used": ["string"]
+  }
+
+interview_prep_prompt: |
+  Generate targeted interview preparation questions based on the match analysis:
+  1. Technical JD Questions: Core questions on required tech stack.
+  2. Resume-Specific Questions: Behavioral and technical deep-dives into projects & achievements explicitly mentioned on the resume.
+  3. Gap Questions: Questions testing knowledge on missing/partial areas that the candidate might encounter in the interview.
+
+  Return valid JSON matching the interview prep schema.

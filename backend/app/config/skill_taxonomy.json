@@ -1,0 +1,20 @@
+{
+  "python": ["python", "python3", "py"],
+  "fastapi": ["fastapi", "fast-api"],
+  "docker": ["docker", "containerization", "docker-compose"],
+  "kubernetes": ["kubernetes", "k8s"],
+  "langchain": ["langchain", "lang-chain"],
+  "llamaindex": ["llamaindex", "llama-index", "gpt-index"],
+  "faiss": ["faiss", "facebook ai similarity search"],
+  "rag": ["rag", "retrieval-augmented generation", "retrieval augmented generation", "vector search"],
+  "transformers": ["transformers", "huggingface", "hugging face", "hf"],
+  "pytorch": ["pytorch", "torch"],
+  "tensorflow": ["tensorflow", "tf", "keras"],
+  "sql": ["sql", "postgresql", "mysql", "sqlite", "tsql", "plsql"],
+  "nosql": ["nosql", "mongodb", "cassandra", "dynamodb"],
+  "aws": ["aws", "amazon web services", "ec2", "s3", "lambda"],
+  "gcp": ["gcp", "google cloud platform", "google cloud", "bigquery"],
+  "azure": ["azure", "microsoft azure"],
+  "git": ["git", "github", "gitlab", "version control"],
+  "llm": ["llm", "large language models", "generative ai", "genai", "slm", "small language models"]
+}

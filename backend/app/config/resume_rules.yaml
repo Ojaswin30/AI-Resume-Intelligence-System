@@ -1,0 +1,12 @@
+resume_rules:
+  prohibit_hallucination: true
+  allow_reordering: true
+  allow_rephrasing: true
+  allow_new_claims: false
+  require_evidence_for_metrics: true
+  strict_entity_grounding: true
+
+recommendation_rules:
+  missing_skill_prefix: "The JD requires {skill}, but this is not currently evidenced in your resume. Only add if you have hands-on experience."
+  partial_skill_prefix: "Your resume shows partial evidence for {skill}. Clarify your specific role or depth of usage."
+  action_verb_enhancement: true

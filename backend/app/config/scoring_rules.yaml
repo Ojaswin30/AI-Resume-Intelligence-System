@@ -1,0 +1,17 @@
+scoring_weights:
+  technical_skills: 0.40
+  experience: 0.25
+  projects: 0.20
+  education: 0.10
+  certifications: 0.05
+
+thresholds:
+  strong_match: 0.72
+  partial_match: 0.45
+  weak_match: 0.25
+
+importance_multipliers:
+  high: 1.2
+  medium: 1.0
+  low: 0.7
+  bonus: 0.5

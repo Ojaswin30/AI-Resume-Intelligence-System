@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResumeAI — Local SLM Intelligence Engine</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0B0F19; color: #F3F4F6; }
+        .glass-card { background: rgba(17, 24, 39, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .badge-strong { background-color: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-partial { background-color: rgba(245, 158, 11, 0.15); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-missing { background-color: rgba(239, 68, 68, 0.15); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #111827; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="border-b border-gray-800 bg-gray-900/60 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-emerald-400 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/20">
+                    <i data-lucide="cpu" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-gray-200 to-indigo-300 bg-clip-text text-transparent">ResumeAI</h1>
+                    <p class="text-xs text-gray-400">Local SLM Intelligence & Deterministic Matching Engine</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-950 text-emerald-300 border border-emerald-800">
+                    <span class="w-1.5 h-1.5 mr-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    100% Local & Privacy-First
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Input Section -->
+        <div id="input-section" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+            
+            <!-- Left: PDF Resume Upload -->
+            <div class="glass-card rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i data-lucide="file-text" class="w-5 h-5 text-indigo-400"></i>
+                        <h2 class="text-base font-semibold text-white">1. Candidate Resume</h2>
+                    </div>
+                    <p class="text-sm text-gray-400 mb-4">Upload candidate resume in PDF format. Content is parsed locally into structured JSON.</p>
+                    
+                    <div id="dropzone" class="border-2 border-dashed border-gray-700 hover:border-indigo-500 rounded-xl p-8 text-center cursor-pointer transition-colors group">
+                        <input type="file" id="resume-input" accept=".pdf" class="hidden">
+                        <div class="flex flex-col items-center">
+                            <i data-lucide="upload-cloud" class="w-12 h-12 text-gray-500 group-hover:text-indigo-400 mb-3 transition-colors"></i>
+                            <span id="file-name" class="text-sm font-medium text-gray-300">Drag & drop your Resume PDF, or <span class="text-indigo-400 underline">browse</span></span>
+                            <span class="text-xs text-gray-500 mt-1">PDF format supported (parsed with PyMuPDF / pdfplumber)</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="file-status" class="mt-4 text-xs text-gray-400 hidden flex items-center space-x-2 bg-gray-800/40 p-3 rounded-lg border border-gray-700">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+                    <span id="file-status-text">Ready for analysis</span>
+                </div>
+            </div>
+
+            <!-- Right: Job Description -->
+            <div class="glass-card rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i data-lucide="briefcase" class="w-5 h-5 text-emerald-400"></i>
+                        <h2 class="text-base font-semibold text-white">2. Job Description (JD)</h2>
+                    </div>
+                    <p class="text-sm text-gray-400 mb-4">Paste the target role description. Local SLM decomposes it into atomic weighted criteria.</p>
+                    
+                    <textarea id="jd-input" rows="7" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl p-3.5 text-sm text-gray-200 focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Paste the Job Description here (e.g., Python, FastAPI, RAG, Transformers, Docker, Vector Databases, System Design, 3+ years experience)..."></textarea>
+                </div>
+                
+                <div class="mt-4 flex items-center justify-between">
+                    <button id="sample-btn" type="button" class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">Load Sample AI Engineer JD</button>
+                    <button id="analyze-btn" type="button" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium text-sm transition-all shadow-lg shadow-indigo-600/30 flex items-center space-x-2">
+                        <span>Run Local Intelligence Analysis</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="hidden glass-card rounded-2xl p-12 text-center my-8">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent mb-4"></div>
+            <h3 class="text-lg font-semibold text-white">Running Multi-Stage Local Pipeline...</h3>
+            <p id="loading-status" class="text-sm text-gray-400 mt-2">Parsing PDF ➔ Decomposing JD ➔ Computing Embedding Cosine Similarities ➔ Guardrail Verification</p>
+        </div>
+
+        <!-- Results Section (Initially Hidden) -->
+        <div id="results-section" class="hidden space-y-8">
+            
+            <!-- Overall Score & Category Summary Banner -->
+            <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-2xl border border-indigo-500/20">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                    <!-- Gauge / Overall Score -->
+                    <div class="flex items-center space-x-6 border-b md:border-b-0 md:border-r border-gray-800 pb-6 md:pb-0">
+                        <div class="relative flex items-center justify-center">
+                            <svg class="w-28 h-28 transform -rotate-90">
+                                <circle cx="56" cy="56" r="48" stroke="#1F2937" stroke-width="8" fill="transparent"/>
+                                <circle id="score-circle" cx="56" cy="56" r="48" stroke="#6366F1" stroke-width="8" stroke-dasharray="301.6" stroke-dashoffset="60" stroke-linecap="round" fill="transparent" class="transition-all duration-1000"/>
+                            </svg>
+                            <div class="absolute flex flex-col items-center justify-center text-center">
+                                <span id="overall-score-val" class="text-3xl font-extrabold text-white">81</span>
+                                <span class="text-[10px] text-gray-400 font-medium uppercase tracking-wider">/ 100</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-xs font-semibold uppercase tracking-wider text-indigo-400">Deterministic Match</div>
+                            <h3 id="role-title-display" class="text-lg font-bold text-white mt-0.5">Senior AI Engineer</h3>
+                            <p class="text-xs text-gray-400 mt-1">Calculated via mathematical weights across verified evidence.</p>
+                        </div>
+                    </div>
+
+                    <!-- Category Breakdown Bars -->
+                    <div class="md:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-4" id="categories-container">
+                        <!-- Dynamic Category Cards will render here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs: Matrix, Gaps & Recommendations, Rewrites, Interview Prep -->
+            <div class="border-b border-gray-800">
+                <nav class="flex space-x-8 text-sm font-medium" id="tabs-nav">
+                    <button class="tab-btn pb-3 text-indigo-400 border-b-2 border-indigo-500" data-tab="matrix">
+                        <i data-lucide="table" class="w-4 h-4 inline mr-1.5"></i>Evidence Matrix
+                    </button>
+                    <button class="tab-btn pb-3 text-gray-400 hover:text-gray-200 border-b-2 border-transparent" data-tab="recommendations">
+                        <i data-lucide="shield-alert" class="w-4 h-4 inline mr-1.5"></i>Gaps & Recommendations
+                    </button>
+                    <button class="tab-btn pb-3 text-gray-400 hover:text-gray-200 border-b-2 border-transparent" data-tab="rewrites">
+                        <i data-lucide="pen-tool" class="w-4 h-4 inline mr-1.5"></i>Grounded Rewrites
+                    </button>
+                    <button class="tab-btn pb-3 text-gray-400 hover:text-gray-200 border-b-2 border-transparent" data-tab="interview">
+                        <i data-lucide="help-circle" class="w-4 h-4 inline mr-1.5"></i>Interview Prep
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Tab 1: Evidence Matrix -->
+            <div id="tab-matrix" class="tab-content block space-y-4">
+                <div class="glass-card rounded-2xl overflow-hidden shadow-xl">
+                    <div class="px-6 py-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/40">
+                        <h3 class="text-sm font-semibold text-white">Requirement vs Resume Evidence Mapping</h3>
+                        <span class="text-xs text-gray-400">Deterministic semantic similarity scores</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="border-b border-gray-800 text-gray-400 uppercase tracking-wider bg-gray-900/80">
+                                    <th class="py-3.5 px-6 font-semibold">JD Requirement</th>
+                                    <th class="py-3.5 px-4 font-semibold">Category</th>
+                                    <th class="py-3.5 px-4 font-semibold">Status</th>
+                                    <th class="py-3.5 px-4 font-semibold">Similarity</th>
+                                    <th class="py-3.5 px-6 font-semibold">Best Matching Resume Evidence</th>
+                                </tr>
+                            </thead>
+                            <tbody id="matrix-tbody" class="divide-y divide-gray-800 text-gray-300">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Gaps & Grounded Recommendations -->
+            <div id="tab-recommendations" class="tab-content hidden space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Honest Recommendations -->
+                    <div class="glass-card rounded-2xl p-6 shadow-xl">
+                        <div class="flex items-center space-x-2 text-emerald-400 mb-4">
+                            <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                            <h3 class="text-base font-semibold text-white">Honest, Evidence-Backed Actions</h3>
+                        </div>
+                        <ul id="recommendations-list" class="space-y-3 text-sm text-gray-300">
+                            <!-- Injected -->
+                        </ul>
+                    </div>
+
+                    <!-- Critical Gaps (Strictly Not Falsified) -->
+                    <div class="glass-card rounded-2xl p-6 shadow-xl">
+                        <div class="flex items-center space-x-2 text-rose-400 mb-4">
+                            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                            <h3 class="text-base font-semibold text-white">Identified Gaps (Do Not Falsify)</h3>
+                        </div>
+                        <ul id="gaps-list" class="space-y-3 text-sm text-gray-300">
+                            <!-- Injected -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Section Level Suggestions -->
+                <div class="glass-card rounded-2xl p-6 shadow-xl">
+                    <h3 class="text-base font-semibold text-white mb-4 flex items-center space-x-2">
+                        <i data-lucide="layout" class="w-5 h-5 text-indigo-400"></i>
+                        <span>Section-by-Section Optimizations</span>
+                    </h3>
+                    <div id="section-improvements-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Injected -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Grounded Bullet Rewrites -->
+            <div id="tab-rewrites" class="tab-content hidden space-y-6">
+                <div class="glass-card rounded-2xl p-6 shadow-xl mb-4 border border-indigo-500/20">
+                    <div class="flex items-start space-x-3">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-indigo-400 mt-0.5"></i>
+                        <div>
+                            <h4 class="text-sm font-semibold text-white">Anti-Hallucination Guardrail Active</h4>
+                            <p class="text-xs text-gray-400 mt-1">Rewritten bullets enhance action verbs and requirement alignment while strictly preserving original technologies, entities, and metrics from your verified background.</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="rewrites-container" class="space-y-4">
+                    <!-- Dynamic bullet comparison cards -->
+                </div>
+            </div>
+
+            <!-- Tab 4: Interview Preparation -->
+            <div id="tab-interview" class="tab-content hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Tech Questions -->
+                    <div class="glass-card rounded-2xl p-6 shadow-xl space-y-4">
+                        <div class="flex items-center space-x-2 text-indigo-400 border-b border-gray-800 pb-3">
+                            <i data-lucide="terminal" class="w-5 h-5"></i>
+                            <h3 class="text-base font-semibold text-white">1. Core JD Questions</h3>
+                        </div>
+                        <div id="tech-questions-list" class="space-y-4 text-xs">
+                            <!-- Injected -->
+                        </div>
+                    </div>
+
+                    <!-- Resume Deep Dives -->
+                    <div class="glass-card rounded-2xl p-6 shadow-xl space-y-4">
+                        <div class="flex items-center space-x-2 text-emerald-400 border-b border-gray-800 pb-3">
+                            <i data-lucide="user-check" class="w-5 h-5"></i>
+                            <h3 class="text-base font-semibold text-white">2. Resume Deep Dives</h3>
+                        </div>
+                        <div id="resume-questions-list" class="space-y-4 text-xs">
+                            <!-- Injected -->
+                        </div>
+                    </div>
+
+                    <!-- Gap Exploration -->
+                    <div class="glass-card rounded-2xl p-6 shadow-xl space-y-4">
+                        <div class="flex items-center space-x-2 text-amber-400 border-b border-gray-800 pb-3">
+                            <i data-lucide="help-circle" class="w-5 h-5"></i>
+                            <h3 class="text-base font-semibold text-white">3. Gap Exploration</h3>
+                        </div>
+                        <div id="gap-questions-list" class="space-y-4 text-xs">
+                            <!-- Injected -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 py-6 text-center text-xs text-gray-500 mt-12">
+        <p>ResumeAI Engine — Privacy-First Local SLM & Deterministic Evidence Pipeline</p>
+    </footer>
+
+    <!-- App Logic -->
+    <script>
+        lucide.createIcons();
+
+        let selectedPdfFile = null;
+
+        // Sample Job Description
+        const sampleJD = `Senior AI Engineer (GenAI & Search)
+Requirements:
+- Strong proficiency in Python, FastAPI, and asynchronous backend engineering.
+- Hands-on experience developing LLM applications using HuggingFace Transformers.
+- Experience implementing RAG (Retrieval-Augmented Generation) and vector search using FAISS or similar vector stores.
+- Familiarity with LangChain or LlamaIndex for orchestration.
+- Knowledge of relational databases (PostgreSQL/SQL) and Docker containerization.
+- Bachelor's or Master's degree in Computer Science or related engineering field.`;
+
+        document.getElementById('sample-btn').addEventListener('click', () => {
+            document.getElementById('jd-input').value = sampleJD;
+        });
+
+        // File dropzone
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('resume-input');
+        const fileNameDisplay = document.getElementById('file-name');
+        const fileStatus = document.getElementById('file-status');
+        const fileStatusText = document.getElementById('file-status-text');
+
+        dropzone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('border-indigo-500'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('border-indigo-500'));
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-indigo-500');
+            if (e.dataTransfer.files.length > 0) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            selectedPdfFile = file;
+            fileNameDisplay.textContent = file.name;
+            fileStatus.classList.remove('hidden');
+            fileStatusText.textContent = `Loaded: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        }
+
+        // Tabs switcher
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.dataset.tab;
+                tabBtns.forEach(b => {
+                    b.classList.remove('text-indigo-400', 'border-indigo-500');
+                    b.classList.add('text-gray-400', 'border-transparent');
+                });
+                btn.classList.add('text-indigo-400', 'border-indigo-500');
+                btn.classList.remove('text-gray-400', 'border-transparent');
+
+                document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
+                document.getElementById(`tab-${target}`).classList.remove('hidden');
+            });
+        });
+
+        // Analyze button handler
+        document.getElementById('analyze-btn').addEventListener('click', async () => {
+            const jdText = document.getElementById('jd-input').value.trim();
+            if (!selectedPdfFile) {
+                alert("Please upload a resume PDF file first.");
+                return;
+            }
+            if (!jdText) {
+                alert("Please paste the Job Description.");
+                return;
+            }
+
+            const loadingState = document.getElementById('loading-state');
+            const resultsSection = document.getElementById('results-section');
+            
+            loadingState.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append('resume_file', selectedPdfFile);
+            formData.append('jd_text', jdText);
+
+            try {
+                const res = await fetch('/api/analyze-full', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!res.ok) {
+                    throw new Error(`Server error: ${res.statusText}`);
+                }
+
+                const data = await res.json();
+                renderResults(data);
+                resultsSection.classList.remove('hidden');
+                lucide.createIcons();
+            } catch (err) {
+                alert(`Error running analysis: ${err.message}`);
+            } finally {
+                loadingState.classList.add('hidden');
+            }
+        });
+
+        function renderResults(data) {
+            const score = data.deterministic_score;
+            
+            // Overall score
+            document.getElementById('overall-score-val').textContent = Math.round(score.overall_score);
+            document.getElementById('role-title-display').textContent = data.jd_decomposition.role_title || "Target Role";
+            
+            // Radial gauge offset (Circumference = 2 * PI * 48 = 301.6)
+            const circumference = 301.6;
+            const offset = circumference - (score.overall_score / 100) * circumference;
+            document.getElementById('score-circle').style.strokeDashoffset = offset;
+
+            // Categories
+            const catContainer = document.getElementById('categories-container');
+            catContainer.innerHTML = '';
+            for (const [catKey, catVal] of Object.entries(score.category_scores)) {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-800/60 p-3.5 rounded-xl border border-gray-700/60';
+                card.innerHTML = `
+                    <div class="text-[11px] font-medium text-gray-400 capitalize">${catKey.replace('_', ' ')}</div>
+                    <div class="text-xl font-bold text-white mt-0.5">${Math.round(catVal.score)}%</div>
+                    <div class="w-full bg-gray-700 h-1.5 rounded-full mt-2 overflow-hidden">
+                        <div class="bg-indigo-500 h-full rounded-full" style="width: ${catVal.score}%"></div>
+                    </div>
+                `;
+                catContainer.appendChild(card);
+            }
+
+            // Evidence Matrix
+            const tbody = document.getElementById('matrix-tbody');
+            tbody.innerHTML = '';
+            score.evidence_matrix.forEach(m => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-800/40 transition-colors';
+                
+                let badgeClass = 'badge-missing';
+                if (m.status === 'STRONG') badgeClass = 'badge-strong';
+                else if (m.status === 'PARTIAL') badgeClass = 'badge-partial';
+
+                tr.innerHTML = `
+                    <td class="py-3 px-6 font-medium text-white">${m.requirement}</td>
+                    <td class="py-3 px-4 capitalize text-gray-400">${m.category.replace('_', ' ')}</td>
+                    <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-md text-[10px] font-semibold ${badgeClass}">${m.status}</span></td>
+                    <td class="py-3 px-4 font-mono text-indigo-300">${(m.score * 100).toFixed(0)}%</td>
+                    <td class="py-3 px-6 text-gray-300">
+                        ${m.best_matching_bullet ? `<span class="italic text-gray-200">"${m.best_matching_bullet}"</span>` : `<span class="text-gray-500">None detected</span>`}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Gaps & Recommendations
+            const recList = document.getElementById('recommendations-list');
+            recList.innerHTML = '';
+            data.grounded_analysis.honest_recommendations.forEach(r => {
+                const li = document.createElement('li');
+                li.className = 'flex items-start space-x-2';
+                li.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0"></i><span>${r}</span>`;
+                recList.appendChild(li);
+            });
+
+            const gapList = document.getElementById('gaps-list');
+            gapList.innerHTML = '';
+            data.grounded_analysis.critical_gaps.forEach(g => {
+                const li = document.createElement('li');
+                li.className = 'flex items-start space-x-2 text-rose-300';
+                li.innerHTML = `<i data-lucide="x" class="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0"></i><span>${g}</span>`;
+                gapList.appendChild(li);
+            });
+
+            // Section improvements
+            const secGrid = document.getElementById('section-improvements-grid');
+            secGrid.innerHTML = '';
+            for (const [secName, items] of Object.entries(data.grounded_analysis.section_improvements)) {
+                const box = document.createElement('div');
+                box.className = 'p-3.5 bg-gray-800/40 rounded-xl border border-gray-700/60';
+                box.innerHTML = `
+                    <div class="text-xs font-semibold uppercase tracking-wider text-indigo-400 capitalize mb-1.5">${secName}</div>
+                    <ul class="text-xs text-gray-300 space-y-1">
+                        ${items.map(it => `<li>• ${it}</li>`).join('')}
+                    </ul>
+                `;
+                secGrid.appendChild(box);
+            }
+
+            // Bullet Rewrites
+            const rewritesContainer = document.getElementById('rewrites-container');
+            rewritesContainer.innerHTML = '';
+            data.bullet_rewrites.forEach(b => {
+                const card = document.createElement('div');
+                card.className = 'glass-card rounded-xl p-5 border border-gray-800';
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs font-semibold text-indigo-400">Target: ${b.target_requirement}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${b.verification_passed ? 'badge-strong' : 'badge-partial'}">
+                            ${b.verification_passed ? 'Fact-Checked & Verified' : 'Guardrail Warning'}
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div class="bg-gray-900/60 p-3 rounded-lg border border-gray-800">
+                            <span class="text-gray-500 font-medium block mb-1">ORIGINAL BULLET</span>
+                            <p class="text-gray-300">${b.original_bullet}</p>
+                        </div>
+                        <div class="bg-indigo-950/20 p-3 rounded-lg border border-indigo-500/30">
+                            <span class="text-indigo-400 font-medium block mb-1">OPTIMIZED BULLET (FACT-PRESERVED)</span>
+                            <p class="text-emerald-300 font-medium">${b.rewritten_bullet}</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-[11px] text-gray-400 italic">
+                        <strong>Rationale:</strong> ${b.rationale}
+                    </div>
+                `;
+                rewritesContainer.appendChild(card);
+            });
+
+            // Interview Prep
+            renderQuestions('tech-questions-list', data.interview_prep.technical_questions);
+            renderQuestions('resume-questions-list', data.interview_prep.resume_deep_dives);
+            renderQuestions('gap-questions-list', data.interview_prep.gap_questions);
+        }
+
+        function renderQuestions(containerId, questions) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            questions.forEach((q, idx) => {
+                const card = document.createElement('div');
+                card.className = 'p-3.5 bg-gray-900/60 rounded-xl border border-gray-800 space-y-1.5';
+                card.innerHTML = `
+                    <div class="font-semibold text-white">${idx + 1}. ${q.question}</div>
+                    <div class="text-gray-400 text-[11px]"><strong>Context:</strong> ${q.context_or_reason}</div>
+                    ${q.sample_focus_points && q.sample_focus_points.length > 0 ? `
+                        <div class="text-[10px] text-indigo-300">
+                            <strong>Key Points:</strong> ${q.sample_focus_points.join(', ')}
+                        </div>
+                    ` : ''}
+                `;
+                container.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
