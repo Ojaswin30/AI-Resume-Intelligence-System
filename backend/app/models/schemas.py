@@ -1,6 +1,7 @@
+import re
 from enum import Enum
 from typing import List, Dict, Optional, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 class MatchStatus(str, Enum):
     STRONG = "STRONG"
@@ -100,11 +101,38 @@ class InterviewPrep(BaseModel):
     gap_questions: List[InterviewQuestion] = Field(default_factory=list)
 
 class GroundedAnalysis(BaseModel):
-    summary_analysis: str
+    summary_analysis: str = "Candidate analysis complete."
     key_strengths: List[str] = Field(default_factory=list)
     critical_gaps: List[str] = Field(default_factory=list)
     honest_recommendations: List[str] = Field(default_factory=list)
     section_improvements: Dict[str, List[str]] = Field(default_factory=dict)
+
+    @field_validator("key_strengths", "critical_gaps", "honest_recommendations", mode="before")
+    @classmethod
+    def coerce_list_fields(cls, v):
+        if isinstance(v, str):
+            # Split by numbered items (1., 2.) or newlines/bullets
+            items = re.split(r"(?:\r?\n|•|\d+\.)\s*", v)
+            return [it.strip().lstrip("-*• ") for it in items if it.strip()]
+        if isinstance(v, list):
+            return [str(it).strip() for it in v if str(it).strip()]
+        return []
+
+    @field_validator("section_improvements", mode="before")
+    @classmethod
+    def coerce_section_improvements(cls, v):
+        if not isinstance(v, dict):
+            return {}
+        cleaned = {}
+        for key, val in v.items():
+            if isinstance(val, str):
+                items = re.split(r"(?:\r?\n|•|\d+\.)\s*", val)
+                cleaned[key] = [it.strip().lstrip("-*• ") for it in items if it.strip()]
+            elif isinstance(val, list):
+                cleaned[key] = [str(it).strip() for it in val if str(it).strip()]
+            else:
+                cleaned[key] = [str(val)]
+        return cleaned
 
 class FullAnalysisReport(BaseModel):
     parsed_resume: ParsedResume

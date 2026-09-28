@@ -121,7 +121,7 @@ with col_right:
 
 # Action Button
 st.markdown("---")
-analyze_btn = st.button("🚀 Run Local Intelligence Analysis", type="primary", use_container_width=True)
+analyze_btn = st.button("🚀 Run Local Intelligence Analysis", type="primary", width="stretch")
 
 if analyze_btn:
     if not uploaded_file:
@@ -129,16 +129,14 @@ if analyze_btn:
     elif not jd_text.strip():
         st.error("⚠️ Please paste or provide the target Job Description.")
     else:
-        with st.spinner("⏳ Running deterministic matching and local SLM synthesis..."):
+        with st.spinner("⏳ Running deterministic matching and local SLM synthesis on GPU..."):
             pdf_bytes = uploaded_file.getvalue()
-            # Run async orchestrator pipeline safely in Streamlit
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            # Clean asyncio run for Windows event loop
             try:
-                report = loop.run_until_complete(orchestrator.run_full_analysis(pdf_bytes, jd_text))
+                report = asyncio.run(orchestrator.run_full_analysis(pdf_bytes, jd_text))
                 st.session_state["report"] = report
-            finally:
-                loop.close()
+            except Exception as e:
+                st.error(f"Error during analysis: {e}")
 
 # Display Results if Available in Session State
 if "report" in st.session_state:
