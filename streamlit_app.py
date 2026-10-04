@@ -251,10 +251,10 @@ if "report" in st.session_state:
     st.markdown("---")
     
     # Match Scorecard Banner
-    if overall >= 75:
+    if overall >= 95:
         badge_html = '<span class="pill-green">🟢 Strong Match — Ready to Apply</span>'
         verdict = "Your resume has high alignment with the target role. A few targeted keyword additions will maximize your ATS score."
-    elif overall >= 50:
+    elif overall >= 80:
         badge_html = '<span class="pill-amber">🟡 Moderate Match — Needs Keyword Alignment</span>'
         verdict = "Your profile shows relevant technical foundations, but is missing explicit evidence for several required tools and frameworks."
     else:
