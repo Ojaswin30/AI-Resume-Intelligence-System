@@ -97,17 +97,17 @@ class MatchingEngine:
         # 7. Status Classification & Honest Notes
         if combined_score >= self.thresholds["strong_match"] or entity_match_ratio >= 0.7:
             status = MatchStatus.STRONG
-            best_evidence = best_bullet or f"[Skills] {', '.join(matched_entities)}"
-            notes = f"Verified direct evidence found for: {', '.join(matched_entities) if matched_entities else 'requirement semantics'}."
+            best_evidence = best_bullet or (f"Skills: {', '.join(matched_entities)}" if matched_entities else "Direct Match")
+            notes = f"Verified evidence found for: {', '.join(matched_entities) if matched_entities else 'requirement semantics'}."
         elif combined_score >= self.thresholds["partial_match"] or entity_match_ratio > 0.0:
             status = MatchStatus.PARTIAL
-            best_evidence = best_bullet or f"[Skills] {', '.join(matched_entities)}"
+            best_evidence = best_bullet or (f"Skills: {', '.join(matched_entities)}" if matched_entities else "Partial Match")
             missing_terms = [e for e in target_entities if e not in matched_entities]
             notes = f"Partial evidence found ({', '.join(matched_entities)}). Missing explicit demonstration for: {', '.join(missing_terms)}."
         else:
             status = MatchStatus.MISSING
             best_evidence = None
-            notes = "No verifiable evidence or matching projects found for this requirement in the resume."
+            notes = "No verifiable evidence or matching skills found for this requirement in the resume."
 
         return EvidenceMatch(
             requirement=req.requirement,
@@ -123,43 +123,43 @@ class MatchingEngine:
 
     def _match_education(self, req_text: str, resume: ParsedResume) -> Optional[EvidenceMatch]:
         edu_entries = resume.education
-        all_text = " ".join([e.degree for e in edu_entries] + [b for b in resume.all_bullets if "b.tech" in b.lower() or "bachelor" in b.lower() or "amity" in b.lower()])
+        all_text = " ".join([e.degree for e in edu_entries] + [b for b in resume.all_bullets if any(k in b.lower() for k in ["b.tech", "bachelor", "master", "degree", "university", "college"])])
         
-        has_degree = any(d in all_text.lower() for d in ["b.tech", "btech", "b.e.", "be", "bachelor", "m.tech", "mca"])
-        has_field = any(f in all_text.lower() for f in ["computer science", "data science", "artificial intelligence", "ai", "information technology", "engineering"])
+        has_degree = any(d in all_text.lower() for d in ["b.tech", "btech", "b.e.", "be", "bachelor", "m.tech", "mca", "b.sc", "m.sc"])
+        has_field = any(f in all_text.lower() for f in ["computer science", "data science", "artificial intelligence", "ai", "information technology", "engineering", "cs", "it"])
 
         if has_degree and has_field:
-            best_entry = next((e.degree for e in edu_entries if len(e.degree) > 10), "B.Tech in Computer Science / AI")
+            best_entry = next((e.degree for e in edu_entries if len(e.degree) > 5), "B.Tech in Computer Science / Engineering")
             return EvidenceMatch(
                 requirement=req_text,
                 category=RequirementCategory.EDUCATION,
-                importance=req_text.lower().count("high") > 0 and RequirementCategory.EDUCATION or ImportanceLevel.HIGH,
+                importance=ImportanceLevel.HIGH,
                 status=MatchStatus.STRONG,
                 score=0.98,
-                best_matching_bullet=f"[Education] {best_entry}",
+                best_matching_bullet=f"Education: {best_entry}",
                 matched_section="education",
-                matched_entities=["B.Tech", "Computer Science"],
+                matched_entities=["Degree", "Engineering / CS"],
                 evidence_notes="Verified matching degree and specialization in candidate's academic record."
             )
         elif has_degree or edu_entries:
+            best_entry = edu_entries[0].degree if edu_entries else "Degree listed"
             return EvidenceMatch(
                 requirement=req_text,
                 category=RequirementCategory.EDUCATION,
                 importance=ImportanceLevel.HIGH,
                 status=MatchStatus.PARTIAL,
-                score=0.75,
-                best_matching_bullet=f"[Education] {edu_entries[0].degree if edu_entries else 'Degree listed'}",
+                score=0.80,
+                best_matching_bullet=f"Education: {best_entry}",
                 matched_section="education",
                 matched_entities=["Degree"],
-                evidence_notes="Candidate holds relevant technical degree."
+                evidence_notes="Candidate holds relevant academic qualification."
             )
         return None
 
     def _match_experience_level(self, req_text: str, resume: ParsedResume) -> Optional[EvidenceMatch]:
         req_lower = req_text.lower()
-        if "0 years" in req_lower or "fresher" in req_lower or "graduating student" in req_lower or "recent graduate" in req_lower:
-            # Candidate is a student/fresher with projects
-            best_evidence = f"[Projects] {resume.projects[0].title if resume.projects else 'Portfolio of Academic & Personal Projects'}"
+        if any(k in req_lower for k in ["0 years", "0-1 year", "fresher", "graduating student", "entry level", "recent graduate", "intern"]):
+            best_evidence = f"Projects: {resume.projects[0].title if resume.projects else 'Demonstrable Technical Projects & Internships'}"
             return EvidenceMatch(
                 requirement=req_text,
                 category=RequirementCategory.EXPERIENCE,
@@ -168,8 +168,8 @@ class MatchingEngine:
                 score=0.95,
                 best_matching_bullet=best_evidence,
                 matched_section="experience",
-                matched_entities=["Fresher / Hands-on Projects"],
-                evidence_notes="Candidate qualifies as graduating student / fresher with demonstrable project portfolio."
+                matched_entities=["Entry Level / Project Portfolio"],
+                evidence_notes="Candidate demonstrates hands-on project portfolio matching entry-level criteria."
             )
         return None
 
@@ -177,22 +177,26 @@ class MatchingEngine:
         if provided_entities and len(provided_entities) >= 1:
             return provided_entities
         
-        # Extract known keywords from requirement string
         found = []
         known_keywords = [
-            "Python", "NumPy", "Pandas", "NLP", "Natural Language Processing",
-            "Tokenization", "Embeddings", "Transformers", "LangChain", "LlamaIndex",
-            "FAISS", "Pinecone", "ChromaDB", "SQL", "Git", "GitHub", "Docker",
-            "FastAPI", "React", "Kaggle", "Hackathons", "Open-Source"
+            "Python", "Java", "C++", "JavaScript", "TypeScript", "Go", "Rust", "SQL",
+            "NumPy", "Pandas", "Scikit-learn", "PyTorch", "TensorFlow", "Keras",
+            "NLP", "Natural Language Processing", "LLM", "Transformers", "BERT", "GPT",
+            "LangChain", "LlamaIndex", "RAG", "FAISS", "ChromaDB", "Pinecone", "Qdrant",
+            "FastAPI", "Flask", "Django", "Node.js", "Express", "React", "Next.js", "Vue",
+            "Docker", "Kubernetes", "AWS", "Azure", "GCP", "PostgreSQL", "MySQL", "MongoDB",
+            "Redis", "Git", "CI/CD", "Linux", "REST APIs", "Microservices"
         ]
         for kw in known_keywords:
             if re.search(r"\b" + re.escape(kw) + r"\b", req_text, re.IGNORECASE):
                 found.append(kw)
         
         if not found:
-            # Tokenize words longer than 3 characters
-            found = [w.strip(",.;:()\"'") for w in req_text.split() if len(w) > 3 and w.lower() not in ["with", "have", "solid", "basic", "strong", "understanding", "experience", "knowledge", "using"]]
-        return found[:5]
+            found = [w.strip(",.;:()\"'") for w in req_text.split() if len(w) > 3 and w.lower() not in [
+                "with", "have", "solid", "basic", "strong", "understanding", "experience", "knowledge",
+                "using", "skills", "ability", "proven", "track", "record", "plus", "preferred"
+            ]]
+        return found[:6]
 
     def _extract_resume_entities(self, resume: ParsedResume) -> Set[str]:
         entities = set()
@@ -221,7 +225,7 @@ class MatchingEngine:
     def _synthesize_bullets(self, resume: ParsedResume) -> List[str]:
         bullets = []
         if resume.skills:
-            bullets.append(f"[Skills] {', '.join(resume.skills[:5])}")
+            bullets.append(f"Skills: {', '.join(resume.skills[:5])}")
         for exp in resume.experience:
             for b in exp.bullets:
                 bullets.append(f"[{exp.role}] {b}")
@@ -229,5 +233,6 @@ class MatchingEngine:
             for b in prj.bullets:
                 bullets.append(f"[{prj.title}] {b}")
         for edu in resume.education:
-            bullets.append(f"[Education] {edu.degree}")
+            bullets.append(f"Education: {edu.degree}")
         return bullets
+

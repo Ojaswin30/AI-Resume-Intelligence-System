@@ -205,21 +205,24 @@ class ResumePDFParser:
     ) -> List[str]:
         bullets = []
 
-        # 1. Project bullets
-        for prj in projects:
-            for b in prj.bullets:
-                if len(b) > 8:
-                    bullets.append(f"[{prj.title}] {b}")
-
-        # 2. Experience bullets
+        # 1. Experience bullets
         for exp in experience:
             for b in exp.bullets:
-                if len(b) > 8:
-                    bullets.append(f"[{exp.role}] {b}")
+                clean_b = b.strip()
+                if len(clean_b) > 8:
+                    bullets.append(f"[{exp.role}] {clean_b}")
+
+        # 2. Project bullets
+        for prj in projects:
+            for b in prj.bullets:
+                clean_b = b.strip()
+                if len(clean_b) > 8:
+                    bullets.append(f"[{prj.title}] {clean_b}")
 
         # 3. Education entries
         for edu in education:
-            bullets.append(f"[Education] {edu.degree}")
+            if edu.degree:
+                bullets.append(f"[Education] {edu.degree}")
 
         # 4. Small, focused skill groupings (3-5 skills each so embeddings are NOT diluted)
         if skills:
@@ -232,7 +235,25 @@ class ResumePDFParser:
         if len(bullets) < 3:
             for line in raw_text.split("\n"):
                 cleaned = line.strip().lstrip("•-*· ")
-                if len(cleaned) > 20:
+                if len(cleaned) > 20 and not any(skip in cleaned.lower() for skip in ["curriculum vitae", "resume", "phone", "email"]):
                     bullets.append(cleaned)
 
         return bullets
+
+    @staticmethod
+    def clean_evidence_text(text: Optional[str]) -> str:
+        """Removes internal bracket tags like [Skills], [Education], [Role] for clean user-facing display."""
+        if not text:
+            return "No direct evidence found"
+        # Match [Tag] text
+        match = re.match(r"^\[(.*?)\]\s*(.*)", text.strip())
+        if match:
+            tag, content = match.group(1), match.group(2)
+            if tag.lower() == "skills":
+                return f"Skills: {content}"
+            elif tag.lower() == "education":
+                return f"Education: {content}"
+            else:
+                return f"{content} ({tag})"
+        return text.strip()
+
